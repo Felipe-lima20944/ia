@@ -1,0 +1,448 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Project X Chat{% endblock %}</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@400;700&display=swap');
+
+        :root {
+            --bg-color-main: #121212;
+            --bg-color-sidebar: #1e1e1e;
+            --text-color: #e0e0e0;
+            --text-color-light: #f5f5f5;
+            --input-bg-color: #2c2c2c;
+            --message-bg-user: #3a3a3a;
+            --message-bg-model: #262626;
+            --primary-color: #00e676;
+            --accent-color: #82b1ff;
+            --danger-color: #f44336;
+        }
+
+        @keyframes glowing-bg {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        body {
+            font-family: 'Roboto Mono', monospace;
+            background-color: var(--bg-color-main);
+            color: var(--text-color);
+            margin: 0;
+            padding: 0;
+            display: flex;
+            height: 100vh;
+            background: linear-gradient(-45deg, var(--bg-color-main), #1a1a1a, #262626);
+            background-size: 400% 400%;
+            animation: glowing-bg 20s ease infinite;
+            overflow: hidden;
+        }
+
+        .main-layout {
+            display: flex;
+            width: 100%;
+            height: 100%;
+            backdrop-filter: blur(50px);
+            background-color: rgba(0, 0, 0, 0.4);
+            border-radius: 10px;
+            margin: 10px;
+            overflow: hidden;
+            box-shadow: 0 0 20px rgba(0, 230, 118, 0.2);
+        }
+
+        .sidebar {
+            width: 260px;
+            background-color: var(--bg-color-sidebar);
+            display: flex;
+            flex-direction: column;
+            padding: 10px;
+            border-right: 1px solid #333;
+        }
+        .sidebar-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px;
+            border-bottom: 1px solid #4a4a4a;
+            margin-bottom: 10px;
+        }
+        .sidebar-header h2 {
+            font-size: 1.1rem;
+            margin: 0;
+            color: var(--primary-color);
+        }
+        
+        /* --- ESTILO DO BOTÃO "NOVA CONVERSA" MELHORADO --- */
+        .new-chat-btn {
+            background-color: transparent;
+            border: 1px solid var(--primary-color);
+            color: var(--primary-color);
+            padding: 8px 15px;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px; /* Espaço entre o ícone e o texto */
+            font-weight: bold;
+            flex-grow: 1; /* Faz o botão ocupar o espaço disponível */
+        }
+        .new-chat-btn:hover {
+            background-color: var(--primary-color);
+            color: var(--bg-color-main);
+            box-shadow: 0 0 10px rgba(0, 230, 118, 0.5);
+        }
+        
+        .conversation-list {
+            flex-grow: 1;
+            overflow-y: auto;
+            padding: 10px 0;
+        }
+        
+        .conversation-item-wrapper {
+            display: flex;
+            align-items: center;
+            border-radius: 8px;
+            margin-bottom: 8px;
+            transition: background-color 0.2s;
+        }
+        .conversation-item-wrapper:hover {
+            background-color: var(--input-bg-color);
+        }
+
+        .conversation-item {
+            flex-grow: 1;
+            padding: 12px;
+            cursor: pointer;
+            overflow: hidden;
+            white-space: nowrap;
+            text-overflow: ellipsis;
+            text-decoration: none;
+            color: var(--text-color);
+            display: block;
+        }
+
+        .conversation-item.active {
+            background-color: var(--primary-color);
+            color: var(--bg-color-main);
+            font-weight: bold;
+            box-shadow: 0 2px 8px rgba(0, 230, 118, 0.3);
+            border-radius: 8px;
+        }
+        
+        .delete-conversa-btn {
+            background: none;
+            border: none;
+            color: #888;
+            cursor: pointer;
+            padding: 0 12px;
+            font-size: 0.9em;
+            opacity: 0;
+            transition: opacity 0.2s, color 0.2s;
+        }
+
+        .conversation-item-wrapper:hover .delete-conversa-btn {
+            opacity: 1;
+        }
+        
+        .delete-conversa-btn:hover {
+            color: var(--danger-color);
+        }
+
+        .chat-main {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            background-color: var(--bg-color-main);
+            overflow: hidden;
+            position: relative;
+        }
+        .chat-messages {
+            flex-grow: 1;
+            overflow-y: auto;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            padding-bottom: 100px; /* Espaço para o input */
+        }
+        .message {
+            display: flex;
+            padding: 20px;
+            align-items: flex-start;
+            border-radius: 12px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+            animation: fadeIn 0.5s ease-out;
+            max-width: 80%;
+            word-wrap: break-word;
+        }
+        .message.user {
+            background-color: var(--message-bg-user);
+            align-self: flex-end; /* Alinha a mensagem do usuário à direita */
+        }
+        .message.model {
+            background-color: var(--message-bg-model);
+            align-self: flex-start; /* Alinha a mensagem do modelo à esquerda */
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .message .avatar {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1rem;
+            margin-right: 15px;
+            color: white;
+            flex-shrink: 0;
+            border: 2px solid var(--primary-color);
+        }
+        .message.user .avatar {
+            background-color: #555;
+            border-color: #82b1ff;
+            margin-right: 0;
+            margin-left: 15px;
+            order: 2; /* Muda a ordem do avatar para a direita */
+        }
+        .message.user .content {
+            order: 1;
+        }
+        .message.model .avatar {
+            background-color: var(--primary-color);
+            color: var(--bg-color-main);
+            border-color: var(--primary-color);
+        }
+        .message .content {
+            flex-grow: 1;
+            padding-top: 5px;
+            line-height: 1.6;
+        }
+        
+        .chat-input-area {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            padding: 20px;
+            background-color: var(--bg-color-main);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.5);
+        }
+        .chat-input-container {
+            width: 100%;
+            max-width: 768px;
+            display: flex;
+            background-color: var(--input-bg-color);
+            border-radius: 12px;
+            padding: 10px;
+            border: 1px solid #333;
+            transition: all 0.3s ease;
+        }
+        .chat-input-container:focus-within {
+            border-color: var(--primary-color);
+            box-shadow: 0 0 15px rgba(0, 230, 118, 0.3);
+        }
+        .chat-input-container textarea {
+            flex-grow: 1;
+            background: transparent;
+            border: none;
+            outline: none;
+            color: var(--text-color-light);
+            padding: 12px;
+            resize: none;
+            font-family: 'Roboto Mono', monospace;
+        }
+        .chat-input-container button {
+            background: linear-gradient(45deg, var(--primary-color), #00b359);
+            border: none;
+            border-radius: 8px;
+            color: var(--bg-color-main);
+            padding: 10px 15px;
+            cursor: pointer;
+            transition: transform 0.2s ease-in-out;
+            font-weight: bold;
+        }
+        .chat-input-container button:hover {
+            transform: scale(1.05);
+        }
+        
+        header, footer {
+            display: none;
+        }
+        
+        @media (max-width: 768px) {
+            .sidebar {
+                position: absolute;
+                top: 0;
+                left: -260px;
+                height: 100%;
+                z-index: 100;
+                transition: left 0.3s ease-in-out;
+            }
+            .sidebar.open {
+                left: 0;
+            }
+        }
+
+        /* --- ESTILOS DO MODAL --- */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(5px);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+
+        .modal-content {
+            background-color: var(--input-bg-color);
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 5px 25px rgba(0, 0, 0, 0.5);
+            width: 90%;
+            max-width: 400px;
+            text-align: center;
+            border: 1px solid #444;
+            animation: modalFadeIn 0.3s ease-out;
+        }
+        
+        @keyframes modalFadeIn {
+            from { opacity: 0; transform: scale(0.9); }
+            to { opacity: 1; transform: scale(1); }
+        }
+
+        .modal-content p {
+            margin-top: 0;
+            margin-bottom: 20px;
+            font-size: 1.1rem;
+            line-height: 1.5;
+            color: var(--text-color-light);
+        }
+
+        .modal-buttons {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .modal-btn {
+            border: none;
+            border-radius: 6px;
+            padding: 10px 20px;
+            font-family: 'Roboto Mono', monospace;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .modal-btn-confirm {
+            background-color: var(--danger-color);
+            color: white;
+        }
+        .modal-btn-confirm:hover {
+            opacity: 0.8;
+        }
+
+        .modal-btn-cancel {
+            background-color: #555;
+            color: var(--text-color-light);
+        }
+        .modal-btn-cancel:hover {
+            background-color: #666;
+        }
+        
+        .modal-btn-ok {
+            background-color: var(--primary-color);
+            color: var(--bg-color-main);
+        }
+        .modal-btn-ok:hover {
+            opacity: 0.8;
+        }
+    </style>
+</head>
+<body>
+    <div class="main-layout">
+        {% block content %}{% endblock %}
+    </div>
+
+    <div id="custom-modal-overlay" class="modal-overlay">
+        <div id="custom-modal" class="modal-content">
+            <p id="modal-message"></p>
+            <div id="modal-buttons" class="modal-buttons"></div>
+        </div>
+    </div>
+
+    {% block scripts %}
+    <script>
+        // O DOMContentLoaded garante que o script só rode após o HTML ser totalmente carregado
+        document.addEventListener('DOMContentLoaded', function() {
+            // Seleciona os elementos do modal uma única vez para melhor performance
+            const modalOverlay = document.getElementById('custom-modal-overlay');
+            const modalMessage = document.getElementById('modal-message');
+            const modalButtons = document.getElementById('modal-buttons');
+
+            // Função genérica para exibir o modal de confirmação
+            // Fica disponível globalmente através de `window` para ser chamada por outros scripts
+            window.showModalConfirm = function(message) {
+                return new Promise((resolve) => {
+                    modalMessage.textContent = message;
+                    modalButtons.innerHTML = `
+                        <button class="modal-btn modal-btn-cancel">Cancelar</button>
+                        <button class="modal-btn modal-btn-confirm">Excluir</button>
+                    `;
+                    modalOverlay.style.display = 'flex';
+
+                    const close = (value) => {
+                        modalOverlay.style.display = 'none';
+                        resolve(value);
+                    };
+                    
+                    // Adiciona os eventos aos novos botões
+                    modalButtons.querySelector('.modal-btn-confirm').onclick = () => close(true);
+                    modalButtons.querySelector('.modal-btn-cancel').onclick = () => close(false);
+                    // Permite fechar clicando fora do modal
+                    modalOverlay.onclick = (event) => {
+                         if (event.target === modalOverlay) close(false);
+                    };
+                });
+            }
+            
+            // Função genérica para exibir o modal de alerta
+            window.showModalAlert = function(message) {
+                 return new Promise((resolve) => {
+                    modalMessage.textContent = message;
+                    modalButtons.innerHTML = `<button class="modal-btn modal-btn-ok">OK</button>`;
+                    modalOverlay.style.display = 'flex';
+                    
+                    const close = () => {
+                        modalOverlay.style.display = 'none';
+                        resolve();
+                    };
+
+                    modalButtons.querySelector('.modal-btn-ok').onclick = () => close();
+                    modalOverlay.onclick = (event) => {
+                        if (event.target === modalOverlay) close();
+                    };
+                });
+            }
+        });
+    </script>
+    {% endblock %}
+</body>
+</html>
